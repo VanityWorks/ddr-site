@@ -1,21 +1,20 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+import history from 'connect-history-api-fallback'
 
-// SPA fallback: serve index.html for client-side routes (fixes 404 on refresh)
+// SPA fallback: serve index.html for client-side routes (fixes 404 on direct URL / refresh)
 function spaFallback() {
-  const handler = (req, res, next) => {
-    if (req.url?.startsWith('/api')) return next()
-    if (req.url?.includes('.')) return next() // static assets
-    req.url = '/index.html'
-    next()
-  }
+  const historyMiddleware = history({
+    index: '/index.html',
+    rewrites: [{ from: /^\/api/, to: (ctx) => ctx.parsedUrl.pathname }],
+  })
   return {
     name: 'spa-fallback',
     configureServer(server) {
-      server.middlewares.use(handler)
+      server.middlewares.stack.unshift({ route: '', handle: historyMiddleware })
     },
     configurePreviewServer(server) {
-      server.middlewares.use(handler)
+      server.middlewares.stack.unshift({ route: '', handle: historyMiddleware })
     },
   }
 }
